@@ -1,0 +1,12 @@
+aws:
+  s3:
+    endpoint: https://s3-zone2-pbs.hengchang6.com
+    outside: https://s3-zone2-pbs.hengchang6.com
+    bucket: CRFS
+    access-key: FPZSM03SH3379ID3S0TP
+    secret-key: dihwCAOgixNmnhEgHRmTgfMi8wyyUGyCo2NUwLL9
+spring:
+  profiles:
+    active: demo
+redis:
+  database: 2
