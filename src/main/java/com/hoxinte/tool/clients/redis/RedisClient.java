@@ -2,7 +2,6 @@ package com.hoxinte.tool.clients.redis;
 
 import com.alibaba.fastjson.support.spring.GenericFastJsonRedisSerializer;
 import com.hoxinte.tool.utils.BaseUtil;
-import com.hoxinte.tool.utils.LoadUtil;
 import redis.clients.jedis.*;
 
 import java.util.*;
@@ -15,20 +14,8 @@ import java.util.*;
  */
 public class RedisClient {
 
-
-    // 单点
-    private static final String HOST = LoadUtil.getProperty("spring.redis.host");
-    private static final int PORT = LoadUtil.getIntegerProperty("spring.redis.port");
-
-    // 哨兵
-    private static final String SENTINEL_MASTER_NAME = LoadUtil.getProperty("spring.redis.sentinel.master");
-    private static final String[] SENTINEL_NODES = LoadUtil.getArrayProperty("spring.redis.sentinel.nodes");
-
-    // 集群
-    private static final String[] CLUSTER_NODES = LoadUtil.getArrayProperty("spring.redis.cluster.nodes");
-
-    private static final boolean USE_CLUSTER = CLUSTER_NODES.length > 1;
-    private static final boolean USE_SENTINEL = !USE_CLUSTER && (SENTINEL_NODES.length > 1);
+    private static final boolean USE_CLUSTER = JedisConf.CLUSTER_NODES.length > 1;
+    private static final boolean USE_SENTINEL = !USE_CLUSTER && (JedisConf.SENTINEL_NODES.length > 1);
 
     private static final int DEFAULT_OVERTIME_SECONDS = 60 * 5;
     private static final int MAX_ATTEMPTS = 3;
@@ -67,7 +54,7 @@ public class RedisClient {
         if (!USE_CLUSTER) {
             return null;
         }
-        Set<HostAndPort> clusterNode = parseHostAndPort(CLUSTER_NODES);
+        Set<HostAndPort> clusterNode = parseHostAndPort(JedisConf.CLUSTER_NODES);
         return new JedisCluster(clusterNode, JedisConf.client(), MAX_ATTEMPTS, JedisConf.genericPool());
     }
 
@@ -75,15 +62,15 @@ public class RedisClient {
         if (!USE_SENTINEL) {
             return null;
         }
-        Set<HostAndPort> sentinelNode = parseHostAndPort(SENTINEL_NODES);
-        return new JedisSentinelPool(SENTINEL_MASTER_NAME, sentinelNode, JedisConf.pool(), JedisConf.client(), JedisConf.client());
+        Set<HostAndPort> sentinelNode = parseHostAndPort(JedisConf.SENTINEL_NODES);
+        return new JedisSentinelPool(JedisConf.SENTINEL_MASTER_NAME, sentinelNode, JedisConf.pool(), JedisConf.client(), JedisConf.client());
     }
 
     private static JedisPool initialPool() {
         if (USE_CLUSTER || USE_SENTINEL) {
             return null;
         }
-        return new JedisPool(JedisConf.pool(), new HostAndPort(HOST, PORT), JedisConf.client());
+        return new JedisPool(JedisConf.pool(), new HostAndPort(JedisConf.HOST, JedisConf.PORT), JedisConf.client());
     }
 
 

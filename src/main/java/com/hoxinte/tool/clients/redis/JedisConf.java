@@ -25,6 +25,17 @@ public class JedisConf {
     private static final String PASSWORD = LoadUtil.getProperty("spring.redis.password");
     private static final int DATABASE = LoadUtil.getIntegerProperty("spring.redis.database");
 
+    // 单点
+    protected static final String HOST = LoadUtil.getProperty("spring.redis.host");
+    protected static final int PORT = LoadUtil.getIntegerProperty("spring.redis.port");
+
+    // 哨兵
+    protected static final String SENTINEL_MASTER_NAME = LoadUtil.getProperty("spring.redis.sentinel.master");
+    protected static final String[] SENTINEL_NODES = LoadUtil.getArrayProperty("spring.redis.sentinel.nodes");
+
+    // 集群
+    protected static final String[] CLUSTER_NODES = LoadUtil.getArrayProperty("spring.redis.cluster.nodes");
+
     private static final int TIME_OUT = LOAD_TIMEOUT == 0 ? 100000 : LOAD_TIMEOUT;
 
     public static DefaultJedisClientConfig client(){
