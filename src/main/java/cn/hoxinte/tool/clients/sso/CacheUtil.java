@@ -173,15 +173,14 @@ public class CacheUtil {
      */
     public static DeptCache getDept(int deptId) {
         DeptCache deptCache = CACHE_DEPT_MAP.get(deptId);
-        if (Objects.isNull(deptCache)) {
-            Object object = RedisClient.hGet(DEPT_CACHE_KEY, String.valueOf(deptId));
-            if (Objects.nonNull(object)) {
-                return (DeptCache) object;
-            } else {
-                return deptCache;
-            }
+        if (Objects.nonNull(deptCache)) {
+            return deptCache;
         }
-        return deptCache;
+        Object object = RedisClient.hGet(DEPT_CACHE_KEY, String.valueOf(deptId));
+        if (Objects.nonNull(object)) {
+            return (DeptCache) object;
+        }
+        return null;
     }
 
     public static UserInfoDTO getUser(int accountId) {

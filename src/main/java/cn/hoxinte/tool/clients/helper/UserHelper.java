@@ -9,6 +9,7 @@ import cn.hoxinte.tool.clients.sso.enums.CtiEnum;
 import cn.hoxinte.tool.clients.sso.enums.ManagerEnum;
 import cn.hoxinte.tool.utils.RandomUtil;
 import cn.hoxinte.tool.utils.StringUtil;
+import org.springframework.beans.BeanUtils;
 import org.springframework.util.CollectionUtils;
 
 import java.util.*;
@@ -69,7 +70,7 @@ public class UserHelper {
 
     /**
      * 需要初始化调用该方法才能使用缓存
-     *
+     * <p>
      * 或者自行控制 syncDeptCache syncUserCache syncCtiRelateCache
      */
     public static void sync() {
@@ -122,6 +123,18 @@ public class UserHelper {
      */
     public static List<RolePermCheckDTO> getRolePermCheckList(String path) {
         return requestRolesCheck(path);
+    }
+
+
+    /**
+     * 获取有权限的用户
+     *
+     * @param path    权限路径
+     * @param userIds 请求用户ID列表
+     * @return List 有该权限的用户列表
+     */
+    public static List<Integer> getHasPermList(String path, Integer... userIds) {
+        return requestHasPerm(path, userIds);
     }
 
     /**
@@ -505,6 +518,38 @@ public class UserHelper {
     }
 
     /**
+     * 获取部门信息
+     * 静态缓存
+     *
+     * @param idList 部门ID列表
+     * @return key 部门ID value 部门信息
+     */
+    public static List<DeptDTO> getDeptList(Collection<Integer> idList) {
+        List<DeptDTO> deptInfoList = new ArrayList<>(idList.size());
+        List<Integer> getDeptIdList = new ArrayList<>(idList.size());
+        for (Integer deptId : idList) {
+            DeptCache dept = CacheUtil.getDept(deptId);
+            if (null != dept) {
+                DeptDTO deptDTO = new DeptDTO();
+                BeanUtils.copyProperties(dept, deptDTO);
+                deptDTO.setId(dept.getDeptId());
+                deptInfoList.add(deptDTO);
+            } else {
+                getDeptIdList.add(deptId);
+            }
+        }
+        if (!CollectionUtils.isEmpty(getDeptIdList)) {
+            List<DeptDTO> allDeptList = loadAllDept();
+            for (DeptDTO dept : allDeptList) {
+                if (idList.contains(dept.getId())) {
+                    deptInfoList.add(dept);
+                }
+            }
+        }
+        return deptInfoList;
+    }
+
+    /**
      * 获取CTI绑定的用户ID
      *
      * @param ctiCode     CTI编码
@@ -675,6 +720,18 @@ public class UserHelper {
     }
 
     /**
+     * 请求平台下 有权限的用户
+     *
+     * @param path 权限路径
+     * @param ids  请求用户ID列表
+     * @return List 有该权限的用户列表
+     */
+    private static List<Integer> requestHasPerm(String path, Integer... ids) {
+        return ParseUtil.parseIdListResponse(SsoClient.requestHasPerm(path, ids));
+    }
+
+
+    /**
      * 请求用户数据
      *
      * @param userId 账号ID
@@ -813,7 +870,7 @@ public class UserHelper {
      *
      * @return 所有部门列表
      */
-    private static List<DeptDTO> loadAllDept() {
+    public static List<DeptDTO> loadAllDept() {
         return ParseUtil.parseDeptListResponse(SsoClient.loadAllDept());
     }
 

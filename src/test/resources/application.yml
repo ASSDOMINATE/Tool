@@ -8,5 +8,18 @@ aws:
 spring:
   profiles:
     active: demo
-redis:
-  database: 2
+  redis:
+    host: 10.200.203.5
+    port: 6379
+    password: Fi8bAH3C2fmlvCsU
+    database: 2
+    ssl: false
+    jedis:
+      pool:
+        max-idle: 20
+        min-idle: 5
+        max-active: 500
+sso:
+  host: http://10.200.203.1:8001/
+  limit: 500
+  platform-id: 1

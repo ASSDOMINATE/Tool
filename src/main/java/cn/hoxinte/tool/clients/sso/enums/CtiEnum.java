@@ -1,9 +1,9 @@
 package cn.hoxinte.tool.clients.sso.enums;
 
 import cn.hoxinte.tool.utils.StringUtil;
+import org.springframework.util.CollectionUtils;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * CTI 枚举
@@ -153,6 +153,17 @@ public enum CtiEnum {
         return UNKNOWN;
     }
 
+    public static List<CtiEnum> getCtiByPlatformCode(int platformCode) {
+        List<CtiEnum> ctiEnumList = new ArrayList<>();
+        for (CtiEnum ctiEnum : values()) {
+
+            if (ctiEnum.platformEnum.getCode() == platformCode) {
+                ctiEnumList.add(ctiEnum);
+            }
+        }
+        return ctiEnumList;
+    }
+
     public static List<CtiEnum> getCtiByPlatform(CtiPlatformEnum platformEnum) {
         List<CtiEnum> ctiEnumList = new ArrayList<>();
         for (CtiEnum ctiEnum : CtiEnum.values()) {
@@ -192,5 +203,36 @@ public enum CtiEnum {
             }
         }
         return UNKNOWN.name;
+    }
+
+    public static Map<Integer, Set<Integer>> getPlatformCodeCtiCodeMap(Set<Integer> delOrUnvalidConfList) {
+        Map<Integer, Set<Integer>> codeMap = new HashMap<>();
+        for (CtiEnum ctiEnum : values()) {
+            if (CtiEnum.UNKNOWN == ctiEnum || delOrUnvalidConfList.contains(ctiEnum.getCode())) {
+                continue;
+            }
+            Integer platformCode = ctiEnum.platformEnum.getCode();
+            Set<Integer> existedCtiSet = codeMap.get(platformCode);
+            if (CollectionUtils.isEmpty(existedCtiSet)) {
+                existedCtiSet = new HashSet<>();
+                existedCtiSet.add(ctiEnum.getCode());
+                codeMap.put(platformCode, existedCtiSet);
+            } else {
+                existedCtiSet.add(ctiEnum.getCode());
+            }
+        }
+
+        return codeMap;
+    }
+
+    public static List<Integer> allCode() {
+        List<Integer> resultList = new ArrayList<>();
+        for (CtiEnum ctiEnum : CtiEnum.values()) {
+            if (CtiEnum.UNKNOWN == ctiEnum) {
+                continue;
+            }
+            resultList.add(ctiEnum.getCode());
+        }
+        return resultList;
     }
 }

@@ -201,6 +201,17 @@ public class SsoClient {
     }
 
     /**
+     * 请求平台下 有权限的用户
+     *
+     * @param path 权限路径
+     * @param ids  请求用户ID列表
+     * @return Json 有该权限的用户列表
+     */
+    public static String requestHasPerm(String path, Integer... ids) {
+        return sendGet(RestTargetEnum.PLATFORM_PERM_CHECK_LIST, params(String.valueOf(SET_PLATFORM_ID), path), params(parseArrayStr(ids)));
+    }
+
+    /**
      * 权限下是否有用户
      *
      * @param permId 权限ID

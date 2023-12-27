@@ -132,6 +132,16 @@ public class RedisClient {
         return ttl(serialize(key));
     }
 
+    /**
+     * 为 Key 设置过期时间
+     * @param key 缓存key
+     * @param seconds 缓存过期时间 秒
+     * @return Long 操作结果
+     */
+    public static long expire(String key, int seconds) {
+        return expire(serialize(key), seconds);
+    }
+
     // 读取缓存
 
     /**
@@ -277,7 +287,7 @@ public class RedisClient {
      * @return Long 操作结果
      */
     public static Long lRemove(String key, String value) {
-        return lrem(serialize(key), serialize(value));
+        return lRem(serialize(key), serialize(value));
     }
 
     /**
@@ -683,7 +693,7 @@ public class RedisClient {
         }
     }
 
-    private static Long lrem(byte[] key, byte[] value) {
+    private static Long lRem(byte[] key, byte[] value) {
         if (USE_CLUSTER) {
             return JEDIS_CLUSTER.lrem(key, 0, value);
         }
@@ -768,6 +778,15 @@ public class RedisClient {
         }
     }
 
+
+    private static long expire(byte[] bytes, int seconds) {
+        try (Jedis jedis = getJedis()) {
+            return jedis.expire(bytes, seconds);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
 
     private static Object unSerialize(byte[] bytes) throws RuntimeException {
         GenericFastJsonRedisSerializer serializer = new GenericFastJsonRedisSerializer();

@@ -35,6 +35,8 @@ public enum RestTargetEnum {
     PERM_HAS_USER(RestResourceEnum.PERM, params(""), params("accountId")),
 
     PLATFORM_ROLES_CHECK_LIST(RestResourceEnum.PLATFORM, params("", "rolesCheck"), params("path")),
+    PLATFORM_PERM_CHECK_LIST(RestResourceEnum.PLATFORM, params("", "hasPerm",""), params("ids")),
+
     ;
 
 
