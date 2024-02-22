@@ -8,7 +8,7 @@ import java.util.Random;
  * 随机工具
  *
  * @author dominate
- * @date 2018/04/20
+ * @since 2018/04/20
  */
 public final class RandomUtil {
 
@@ -73,7 +73,6 @@ public final class RandomUtil {
      */
     public static String createRandStr(String baseStr, int length) {
         int baseStrSize = baseStr.length();
-
         StringBuilder sb = new StringBuilder();
         Random random = new Random();
         for (int i = 0; i < length; ++i) {

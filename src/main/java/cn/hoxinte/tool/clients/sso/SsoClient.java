@@ -1,6 +1,7 @@
 package cn.hoxinte.tool.clients.sso;
 
 
+import cn.hoxinte.tool.clients.helper.AuthHelper;
 import cn.hoxinte.tool.clients.sso.enums.RestTargetEnum;
 import cn.hoxinte.tool.utils.LoadUtil;
 
@@ -9,6 +10,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -35,6 +37,10 @@ public class SsoClient {
 
     private static final String PARAM_SPLIT = ",";
     private static final String EMPTY_STRING = "";
+
+    private static final String HEADER_APP_TENANT = "App-Tenant";
+    private static final String HEADER_TOKEN = "X-User-Token";
+    private static final String HEADER_API_TOKEN = "X-App-Token";
 
 
     // 封装外部请求
@@ -134,11 +140,24 @@ public class SsoClient {
      * 请求根据关键字查询用户ID列表
      *
      * @param keyword 关键字
+     * @param token   请求用户Token
      * @return Json
      */
-    public static String requestSearchUserList(String keyword) {
+    public static String requestSearchUserList(String keyword, String token) {
         // user/$keyword$
-        return sendGetWithValue(RestTargetEnum.USER_KEYWORD, keyword);
+        return sendGetWithValue(RestTargetEnum.USER_KEYWORD, createTokenHeader(token), keyword);
+    }
+
+    /**
+     * 请求根据关键字查询用户ID列表
+     *
+     * @param keyword 关键字
+     * @param token   请求用户Token
+     * @return Json
+     */
+    public static String requestSearchUserIdList(String keyword, String token) {
+        // user/$keyword$
+        return sendGetWithValue(RestTargetEnum.USER_ID_KEYWORD, createTokenHeader(token), keyword);
     }
 
     public static String requestUserDetail(Integer userId) {
@@ -231,9 +250,19 @@ public class SsoClient {
         return sendGetWithValue(RestTargetEnum.DEPT_LIST);
     }
 
+    public static String loadDept(String token) {
+        return sendGetWithValue(RestTargetEnum.DEPT_LIST, createTokenHeader(token));
+    }
+
+    public static String loadDept(int accountId) {
+        return sendGetWithValue(RestTargetEnum.DEPT_LIST_BY_USER, params(String.valueOf(accountId)));
+    }
+
     /**
      * 读取子部门
      *
+     * @param deptId 部门ID
+     * @param getAll 是否获取全部
      * @return 子部门列表
      */
     public static String loadChildDept(int deptId, boolean getAll) {
@@ -243,17 +272,28 @@ public class SsoClient {
     // 封装工请求具
 
     private static String sendGetWithParam(RestTargetEnum restfulEnum, String... paramValues) {
-        return sendGet(restfulEnum, new String[]{}, paramValues);
+        return sendGetWithParam(restfulEnum, Collections.emptyMap(), paramValues);
+    }
+
+    private static String sendGetWithParam(RestTargetEnum restfulEnum, Map<String, String> headerMap, String... paramValues) {
+        return sendGet(restfulEnum, headerMap, new String[]{}, paramValues);
     }
 
     private static String sendGetWithValue(RestTargetEnum restfulEnum, String... urlValues) {
-        return sendGet(restfulEnum, urlValues, new String[]{});
+        return sendGetWithValue(restfulEnum, Collections.emptyMap(), urlValues);
+    }
+
+    private static String sendGetWithValue(RestTargetEnum restfulEnum, Map<String, String> headerMap, String... urlValues) {
+        return sendGet(restfulEnum, headerMap, urlValues, new String[]{});
     }
 
     private static String sendGet(RestTargetEnum restfulEnum, String[] urlValues, String[] paramValues) {
+        return sendGet(restfulEnum, Collections.emptyMap(), urlValues, paramValues);
+    }
+
+    private static String sendGet(RestTargetEnum restfulEnum, Map<String, String> headerMap, String[] urlValues, String[] paramValues) {
         String url = restfulEnum.createUrl(SSO_SERVER, urlValues, paramValues);
-        // TODO 后续需要扩展请求头的封装
-        return sendGet(url);
+        return sendGet(url, headerMap);
     }
 
 
@@ -272,8 +312,16 @@ public class SsoClient {
         return values;
     }
 
-    private static String sendGet(String url) {
-        return sendGet(url, Collections.emptyMap());
+    private static Map<String, String> createTokenHeader(String token) {
+        return createHeader(new String[]{HEADER_TOKEN}, new String[]{token});
+    }
+
+    private static Map<String, String> createHeader(String[] keys, String[] values) {
+        Map<String, String> headerMap = new HashMap<String, String>(keys.length);
+        for (int i = 0; i < keys.length; i++) {
+            headerMap.put(keys[i], values[i]);
+        }
+        return headerMap;
     }
 
     private static String sendGet(String url, Map<String, String> headerMap) {
@@ -282,6 +330,8 @@ public class SsoClient {
         for (Map.Entry<String, String> header : headerMap.entrySet()) {
             requestBuilder.setHeader(header.getKey(), header.getValue());
         }
+        // TODO API请求头的封装 暂时用的Jwt校验
+        requestBuilder.setHeader(HEADER_API_TOKEN, AuthHelper.createApiToken());
         var request = requestBuilder.GET().build();
         try {
             CompletableFuture<HttpResponse<String>> response = client.sendAsync(request, HttpResponse.BodyHandlers.ofString());

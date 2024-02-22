@@ -4,7 +4,7 @@ package cn.hoxinte.tool.utils;
  * @author dominate
  * @since 2022/9/14
  */
-public class StringUtil {
+public final class StringUtil {
 
     public static final String EMPTY = "";
 

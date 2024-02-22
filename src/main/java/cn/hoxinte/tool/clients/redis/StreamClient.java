@@ -35,7 +35,7 @@ public class StreamClient {
     }
 
     private static JedisPool initialPool() {
-        return new JedisPool(JedisConf.pool(), HOST, PORT, TIME_OUT, PASSWORD, DATABASE);
+        return new JedisPool(RedisConfig.jedisPool(), HOST, PORT, TIME_OUT, PASSWORD, DATABASE);
     }
 
     public static Jedis getJedis() {
@@ -50,8 +50,9 @@ public class StreamClient {
     /**
      * 发送消息
      *
-     * @param
-     * @return
+     * @param key 请求Key
+     * @param obj 发送数据
+     * @return 操作结果
      */
     public static StreamEntryID send(String key, Object obj) {
         return produce(key, BaseUtil.beanToStringMap(obj));
@@ -96,10 +97,12 @@ public class StreamClient {
     /**
      * 自动接收消息
      *
-     * @param key
-     * @param customerName
-     * @param groupName
-     * @return
+     * @param key          steam key
+     * @param customerName 定义名称
+     * @param groupName    组名称
+     * @param <T>          数据类型
+     * @param clazz        数据类型
+     * @return 消息结果数组
      */
     public static <T> List<T> autoReceived(String key, String customerName, String groupName, Class<T> clazz) {
         Map.Entry<String, List<StreamEntry>> rnt = consume(customerName, groupName, key);

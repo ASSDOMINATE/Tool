@@ -64,6 +64,7 @@ public class DataSourceUtil {
      * @param user     账户
      * @param password 密码
      * @return 数据库连接
+     * @throws SQLException 数据库返回异常
      */
     public static Connection connect(String dbUrl, String user, String password) throws SQLException {
         Properties perm = new Properties();
@@ -77,10 +78,12 @@ public class DataSourceUtil {
      * 创建连接
      * 需要关闭
      *
-     * @param dbUrl    数据库 URL
-     * @param user     账户
-     * @param password 密码
+     * @param dbUrl      数据库 URL
+     * @param driverPath 驱动地址
+     * @param user       账户
+     * @param password   密码
      * @return 数据库连接
+     * @throws SQLException 数据库返回异常
      */
     public static Connection connect(String dbUrl, String driverPath, String user, String password) throws SQLException {
         try {
@@ -97,6 +100,7 @@ public class DataSourceUtil {
      * @param connection 数据库连接
      * @param sql        待执行的SQL
      * @return 查询结果
+     * @throws SQLException 数据库返回异常
      */
     public static List<Map<String, Object>> executeQuery(Connection connection, String sql) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -113,6 +117,8 @@ public class DataSourceUtil {
      * @param sql        待执行的SQL
      * @param clazz      返回 class
      * @param <T>        返回的对象
+     * @param params     参数
+     * @throws SQLException 数据库返回异常
      * @return 查询结果
      */
     public static <T> List<T> executeQuery(Connection connection, String sql, Class<T> clazz, String... params) throws SQLException {
@@ -143,7 +149,6 @@ public class DataSourceUtil {
         }
         return obj;
     }
-
 
 
     private static List<Map<String, Object>> parseResult(ResultSet rs) throws SQLException {

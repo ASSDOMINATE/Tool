@@ -7,7 +7,7 @@ import java.math.RoundingMode;
 /**
  * @author 计泽汉
  */
-public class CalculateUtil {
+public final class CalculateUtil {
 
     public final static String PER_CENT = "%";
 
@@ -23,9 +23,10 @@ public class CalculateUtil {
 
     /**
      * 除法
+     *
      * @param dividend 被除数
-     * @param divisor 除数
-     * @param scale 精确小数位数
+     * @param divisor  除数
+     * @param scale    精确小数位数
      * @return 结果
      */
     public static BigDecimal divide(Integer dividend, Integer divisor, Integer scale) {
@@ -38,9 +39,10 @@ public class CalculateUtil {
 
     /**
      * 除法
+     *
      * @param dividend 被除数
-     * @param divisor 除数
-     * @param scale 精确小数位数
+     * @param divisor  除数
+     * @param scale    精确小数位数
      * @return 结果
      */
     public static BigDecimal divide(BigDecimal dividend, BigDecimal divisor, Integer scale) {
@@ -52,8 +54,9 @@ public class CalculateUtil {
 
     /**
      * 乘法
-     * @param num1 乘数1
-     * @param num2 乘数2
+     *
+     * @param num1  乘数1
+     * @param num2  乘数2
      * @param scale 精确度
      * @return 结果
      */
@@ -63,17 +66,22 @@ public class CalculateUtil {
 
     /**
      * 百分号转换
-     * @return
+     *
+     * @param data 数字
+     * @return 转换结果
      */
-    public static String perCentTransfer(BigDecimal data){
+    public static String perCentTransfer(BigDecimal data) {
         return multiply(data, new BigDecimal(DIVIDEND), SCALE_TWO) + PER_CENT;
     }
 
     /**
      * 百分号转换
-     * @return
+     *
+     * @param dividend 因母
+     * @param divisor  因子
+     * @return 转换结果
      */
-    public static String perCentTransfer(BigDecimal dividend, BigDecimal divisor){
+    public static String perCentTransfer(BigDecimal dividend, BigDecimal divisor) {
         BigDecimal data = divide(dividend, divisor, 4);
         return multiply(data, new BigDecimal(DIVIDEND), SCALE_TWO) + PER_CENT;
     }

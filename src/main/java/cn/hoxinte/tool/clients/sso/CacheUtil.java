@@ -39,6 +39,10 @@ public class CacheUtil {
      * User.uniqueCode - User.id
      */
     private static final Map<String, Integer> CACHE_USER_UNIQUE_CODE_MAP = new HashMap<>();
+    /**
+     * User.name - User.id
+     */
+    private static final Map<String, Integer> CACHE_USER_NAME_MAP = new HashMap<>();
 
 
     /**
@@ -90,6 +94,7 @@ public class CacheUtil {
         System.out.println("Cache User Data " + CACHE_USER_DATA_MAP.size());
         System.out.println("Cache User Identity " + CACHE_USER_IDENTITY_MAP.size());
         System.out.println("Cache User UniqueCode " + CACHE_USER_UNIQUE_CODE_MAP.size());
+        System.out.println("Cache User Name " + CACHE_USER_NAME_MAP.size());
         System.out.println("Cache Manager " + CACHE_MANAGER_MAP.size());
         System.out.println("Cache Dept " + CACHE_DEPT_MAP.size());
     }
@@ -222,6 +227,16 @@ public class CacheUtil {
     }
 
     /**
+     * 获取用户ID
+     *
+     * @param name 用户名称
+     * @return 用户ID
+     */
+    public static int getUserIdByName(String name) {
+        return CACHE_USER_NAME_MAP.getOrDefault(name, 0);
+    }
+
+    /**
      * 设置用户缓存
      *
      * @param user 用户数据
@@ -231,6 +246,7 @@ public class CacheUtil {
         CACHE_USER_MAP.put(user.getAccountId(), user);
         CACHE_USER_IDENTITY_MAP.put(user.getIdentity(), user.getAccountId());
         CACHE_USER_UNIQUE_CODE_MAP.put(user.getUniqueCode(), user.getAccountId());
+        CACHE_USER_NAME_MAP.put(user.getName(), user.getAccountId());
     }
 
     /**
@@ -276,10 +292,12 @@ public class CacheUtil {
         CACHE_USER_MAP.clear();
         CACHE_USER_IDENTITY_MAP.clear();
         CACHE_USER_UNIQUE_CODE_MAP.clear();
+        CACHE_USER_NAME_MAP.clear();
         for (UserInfoDTO userInfo : userCacheMap.values()) {
             CACHE_USER_MAP.put(userInfo.getAccountId(), userInfo);
             CACHE_USER_IDENTITY_MAP.put(userInfo.getIdentity(), userInfo.getAccountId());
             CACHE_USER_UNIQUE_CODE_MAP.put(userInfo.getUniqueCode(), userInfo.getAccountId());
+            CACHE_USER_NAME_MAP.put(userInfo.getName(), userInfo.getAccountId());
         }
     }
 

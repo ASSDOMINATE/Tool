@@ -20,9 +20,11 @@ public enum RestTargetEnum {
     USER_LOWER_ID_LIST(RestResourceEnum.USER, params("", "lower"), params()),
     USER_CHECK_DEPT(RestResourceEnum.USER, params("", "checkDept"), params("deptIds")),
     USER_KEYWORD(RestResourceEnum.USER, params("keyword"), params()),
+    USER_ID_KEYWORD(RestResourceEnum.USER, params("id", "keyword"), params()),
     USER_DETAIL(RestResourceEnum.USER, params(""), params()),
 
     DEPT_LIST(RestResourceEnum.DEPT, params(), params()),
+    DEPT_LIST_BY_USER(RestResourceEnum.DEPT, params("list", ""), params()),
     DEPT_CHILD_LIST(RestResourceEnum.DEPT, params(""), params("getAll")),
     DEPT_USER_LIST(RestResourceEnum.DEPT, params("", "users"), params()),
     DEPT_USER_ID_LIST(RestResourceEnum.DEPT, params("", "userIds"), params()),
@@ -35,8 +37,7 @@ public enum RestTargetEnum {
     PERM_HAS_USER(RestResourceEnum.PERM, params(""), params("accountId")),
 
     PLATFORM_ROLES_CHECK_LIST(RestResourceEnum.PLATFORM, params("", "rolesCheck"), params("path")),
-    PLATFORM_PERM_CHECK_LIST(RestResourceEnum.PLATFORM, params("", "hasPerm",""), params("ids")),
-
+    PLATFORM_PERM_CHECK_LIST(RestResourceEnum.PLATFORM, params("", "hasPerm", ""), params("ids")),
     ;
 
 

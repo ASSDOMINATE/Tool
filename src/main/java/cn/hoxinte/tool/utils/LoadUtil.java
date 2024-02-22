@@ -9,7 +9,7 @@ import java.util.*;
  * 文件读取工具
  *
  * @author dominate
- * @date 2021/11/05
+ * @since 2021/11/05
  */
 public final class LoadUtil {
 
@@ -55,7 +55,7 @@ public final class LoadUtil {
     /**
      * 读取配置参数值
      * <p>
-     * 读取顺序 启动参数 > 基础配置文件 > 环境配置文件
+     * 读取顺序 1.启动参数 2.基础配置文件 3.环境配置文件
      *
      * @param property 配置参数
      * @return 参数值
@@ -67,7 +67,7 @@ public final class LoadUtil {
     /**
      * 读取配置参数值
      * <p>
-     * 读取顺序 启动参数 > 基础配置文件 > 环境配置文件
+     * 读取顺序 启动参数 1.基础配置文件  2.环境配置文件
      *
      * @param realTime 实时
      * @param property 配置参数

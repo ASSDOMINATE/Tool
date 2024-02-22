@@ -15,7 +15,6 @@ import org.springframework.util.CollectionUtils;
 import java.util.*;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
  * SSO 用户相关数据工具
@@ -92,6 +91,71 @@ public class UserHelper {
         }, 0, RUN_SYNC_MINUTE, TimeUnit.MINUTES);
     }
 
+    /**
+     * 同步用户缓存
+     * 需要定时同步
+     */
+    public static void syncUserCache() {
+        int index = 0;
+        while (true) {
+            List<UserInfoDTO> userList = requestUserList(index);
+            if (CollectionUtils.isEmpty(userList)) {
+                return;
+            }
+            index += userList.size();
+            for (UserInfoDTO user : userList) {
+                CacheUtil.setUserCache(user);
+            }
+        }
+    }
+
+    /**
+     * 同步部门缓存
+     * 需要定时同步
+     */
+    public static void syncDeptCache() {
+        List<DeptDTO> deptList = loadAllDept();
+        Map<Integer, List<DeptUserDTO>> deptUserMap = loadAllUserDetail();
+        for (DeptDTO dept : deptList) {
+            // 保存部门领导信息
+            List<DeptUserDTO> userList = deptUserMap.getOrDefault(dept.getId(), Collections.emptyList());
+            Map<Integer, DeptCache.Leader> leaderMap = new HashMap<>(userList.size());
+            for (DeptUserDTO user : userList) {
+                if (null == user.getPost() || StringUtil.isEmpty(user.getPost().getPost())) {
+                    continue;
+                }
+                int userManagerCode = ManagerEnum.parseCode(user.getPost().getPost());
+                CacheUtil.setUserDataCache(parseCache(user, dept, userManagerCode));
+                if (0 > userManagerCode) {
+                    continue;
+                }
+                DeptCache.Leader leader = new DeptCache.Leader();
+                leader.setUserId(user.getAccountId());
+                leader.setUserName(user.getName());
+                leader.setUniqueCode(user.getUniqueCode());
+                leaderMap.put(userManagerCode, leader);
+            }
+            CacheUtil.setDeptCache(parseCache(dept, leaderMap));
+        }
+
+        CacheUtil.parseDeptLeader();
+    }
+
+    /**
+     * 同步CTI绑定关系
+     * 在拉取CTI数据前同步
+     */
+    public static void syncCtiRelateCache() {
+        for (CtiEnum ctiEnum : CtiEnum.values()) {
+            if (ctiEnum.isDisabled()) {
+                continue;
+            }
+            List<CtiRelateDTO> relateList = requestCtiRelate(ctiEnum.getCode());
+            for (CtiRelateDTO relate : relateList) {
+                saveCtiRelateCache(ctiEnum.getCode(), relate.getCode(), relate);
+            }
+        }
+    }
 
     /**
      * 判断用户是否在部门下
@@ -125,9 +189,8 @@ public class UserHelper {
         return requestRolesCheck(path);
     }
 
-
     /**
-     * 获取有权限的用户
+     * 过滤有权限的用户
      *
      * @param path    权限路径
      * @param userIds 请求用户ID列表
@@ -150,6 +213,7 @@ public class UserHelper {
 
     /**
      * 获取用户领导描述
+     * 静态缓存
      *
      * @param userId 用户ID
      * @return 领导描述
@@ -160,6 +224,7 @@ public class UserHelper {
 
     /**
      * 获取用户缓存数据
+     * 静态缓存
      *
      * @param userId 用户ID
      * @return 用户缓存数据
@@ -191,7 +256,7 @@ public class UserHelper {
     }
 
     /**
-     * 获取用户数据
+     * 用户ID 获取 用户数据
      * 静态缓存
      *
      * @param userId 账号ID
@@ -213,7 +278,7 @@ public class UserHelper {
     }
 
     /**
-     * 获取用户名
+     * 用户ID 获取 用户名
      * 静态缓存
      *
      * @param userId 账号ID
@@ -236,7 +301,8 @@ public class UserHelper {
     }
 
     /**
-     * 获取用户ID
+     * 用户身份证 获取 用户ID
+     * 静态缓存
      *
      * @param identity 身份证号
      * @return 用户ID
@@ -246,7 +312,8 @@ public class UserHelper {
     }
 
     /**
-     * 获取用户ID
+     * 唯一标识 获取 用户ID
+     * 静态缓存
      *
      * @param uniqueCode 唯一标识
      * @return 用户ID
@@ -256,7 +323,18 @@ public class UserHelper {
     }
 
     /**
-     * 获取用户数据 Map
+     * 用户名称 获取 用户ID
+     * 静态缓存
+     *
+     * @param name 用户名称
+     * @return 用户ID
+     */
+    public static int getUserIdByName(String name) {
+        return CacheUtil.getUserIdByName(name);
+    }
+
+    /**
+     * 用户ID列表 获取用户数据 Map
      * 静态缓存
      *
      * @param userIdList 账号ID列表
@@ -285,7 +363,7 @@ public class UserHelper {
     }
 
     /**
-     * 获取用户名称 Mao
+     * 用户ID列表 获取 用户名称 Mao
      * 静态缓存
      *
      * @param userIdList userIdList 账号ID列表
@@ -314,7 +392,7 @@ public class UserHelper {
     }
 
     /**
-     * 获取用户数据 Map
+     * 用户ID列表 获取用户数据列表
      * 静态缓存
      *
      * @param userIdList 账号ID列表
@@ -346,10 +424,11 @@ public class UserHelper {
      * 用户搜索
      *
      * @param keyword 搜索关键字
+     * @param token   请求用户 token
      * @return 用户列表
      */
-    public static List<UserInfoDTO> searchUserList(String keyword) {
-        return requestSearchUserList(keyword);
+    public static List<UserInfoDTO> searchUserList(String keyword, String token) {
+        return requestSearchUserList(keyword, token);
     }
 
     /**
@@ -366,22 +445,19 @@ public class UserHelper {
      * 获取部门下用户ID列表
      *
      * @param keyword 关键字
+     * @param token   请求用户 token
      * @return 用户ID List
      */
-    public static List<Integer> searchUserIdList(String keyword) {
+    public static List<Integer> searchUserIdList(String keyword, String token) {
         if (StringUtil.isEmpty(keyword)) {
             return Collections.emptyList();
         }
-        List<UserInfoDTO> userInfoList = requestSearchUserList(keyword);
-        if (!CollectionUtils.isEmpty(userInfoList)) {
-            return userInfoList.stream().map(UserInfoDTO::getAccountId).collect(Collectors.toList());
-        }
-        return Collections.emptyList();
+        return requestSearchUserIdList(keyword, token);
     }
 
     /**
      * 获取部门下用户ID列表
-     * Redis缓存
+     * Redis临时缓存
      *
      * @param deptId 部门ID
      * @return 用户ID List
@@ -396,10 +472,9 @@ public class UserHelper {
         return userIdList;
     }
 
-
     /**
      * 查询用户所在部门下的所有用户
-     * Redis缓存
+     * Redis临时缓存
      *
      * @param userId 用户id
      * @return 用户ID List
@@ -416,6 +491,7 @@ public class UserHelper {
 
     /**
      * 获取部门下用户
+     * Redis临时缓存
      *
      * @param deptId 部门ID
      * @return 用户列表
@@ -433,7 +509,7 @@ public class UserHelper {
 
     /**
      * 获取部门下所有部门的用户ID列表
-     * Redis缓存
+     * Redis临时缓存
      *
      * @param deptId 部门ID
      * @return 用户ID List
@@ -452,7 +528,7 @@ public class UserHelper {
     }
 
     /**
-     * 获取用户部门描述
+     * 用户ID列表 获取 用户部门描述 Map
      * 静态缓存
      *
      * @param userIdList 用户ID列表
@@ -481,6 +557,7 @@ public class UserHelper {
 
     /**
      * 获取用户部门描述
+     * 静态缓存
      *
      * @param userId 用户ID
      * @return 部门描述
@@ -577,73 +654,8 @@ public class UserHelper {
 
 
     /**
-     * 同步用户缓存
-     * 需要定时同步
-     */
-    public static void syncUserCache() {
-        int index = 0;
-        while (true) {
-            List<UserInfoDTO> userList = requestUserList(index);
-            if (CollectionUtils.isEmpty(userList)) {
-                return;
-            }
-            index += userList.size();
-            for (UserInfoDTO user : userList) {
-                CacheUtil.setUserCache(user);
-            }
-        }
-    }
-
-    /**
-     * 同步部门缓存
-     * 需要定时同步
-     */
-    public static void syncDeptCache() {
-        List<DeptDTO> deptList = loadAllDept();
-        Map<Integer, List<DeptUserDTO>> deptUserMap = loadAllUserDetail();
-        for (DeptDTO dept : deptList) {
-            // 保存部门领导信息
-            List<DeptUserDTO> userList = deptUserMap.getOrDefault(dept.getId(), Collections.emptyList());
-            Map<Integer, DeptCache.Leader> leaderMap = new HashMap<>(userList.size());
-            for (DeptUserDTO user : userList) {
-                if (null == user.getPost() || StringUtil.isEmpty(user.getPost().getPost())) {
-                    continue;
-                }
-                int userManagerCode = ManagerEnum.parseCode(user.getPost().getPost());
-                CacheUtil.setUserDataCache(parseCache(user, dept, userManagerCode));
-                if (0 > userManagerCode) {
-                    continue;
-                }
-                DeptCache.Leader leader = new DeptCache.Leader();
-                leader.setUserId(user.getAccountId());
-                leader.setUserName(user.getName());
-                leader.setUniqueCode(user.getUniqueCode());
-                leaderMap.put(userManagerCode, leader);
-            }
-            CacheUtil.setDeptCache(parseCache(dept, leaderMap));
-        }
-
-        CacheUtil.parseDeptLeader();
-    }
-
-    /**
-     * 同步CTI绑定关系
-     * 在拉取CTI数据前同步
-     */
-    public static void syncCtiRelateCache() {
-        for (CtiEnum ctiEnum : CtiEnum.values()) {
-            if (ctiEnum.isDisabled()) {
-                continue;
-            }
-            List<CtiRelateDTO> relateList = requestCtiRelate(ctiEnum.getCode());
-            for (CtiRelateDTO relate : relateList) {
-                saveCtiRelateCache(ctiEnum.getCode(), relate.getCode(), relate);
-            }
-        }
-    }
-
-    /**
      * 获取用户领导 Map
+     * 静态缓存
      *
      * @param userId 用户ID
      * @return 用户领导 Map
@@ -654,6 +666,7 @@ public class UserHelper {
 
     /**
      * 获取用户部门ID
+     * 静态缓存
      *
      * @param userId 用户ID
      * @return 部门ID
@@ -664,6 +677,7 @@ public class UserHelper {
 
     /**
      * 获取部门领导 Map
+     * 静态缓存
      *
      * @param deptId 部门ID
      * @return 部门领导 Map
@@ -672,9 +686,58 @@ public class UserHelper {
         return CacheUtil.getDeptLeaderMap(deptId);
     }
 
+    /**
+     * 获取全部部门
+     *
+     * @param token 请求用户Token
+     * @return 该用户可访问的部门
+     */
+    public static List<DeptDTO> loadDept(String token) {
+        return ParseUtil.parseDeptListResponse(SsoClient.loadDept(token));
+    }
+
+    /**
+     * 获取全部部门
+     *
+     * @param accountId 请求用户ID
+     * @return 该用户可访问的部门
+     */
+    public static List<DeptDTO> loadDept(int accountId) {
+        return ParseUtil.parseDeptListResponse(SsoClient.loadDept(accountId));
+    }
+
+    /**
+     * 变成 树结构部门
+     *
+     * @param deptList 部门列表
+     * @return 树结构部门
+     */
+    public static List<DeptTreeDTO> makeDeptTree(List<DeptDTO> deptList) {
+        if (CollectionUtils.isEmpty(deptList)) {
+            return Collections.emptyList();
+        }
+        List<DeptTreeDTO> treeList = new ArrayList<>();
+        Map<Integer, List<DeptTreeDTO>> deptMap = new HashMap<>();
+        for (DeptDTO dept : deptList) {
+            DeptTreeDTO deptTree = new DeptTreeDTO();
+            BeanUtils.copyProperties(dept, deptTree);
+            if (dept.getParentId().equals(0)) {
+                treeList.add(deptTree);
+                continue;
+            }
+            if (!deptMap.containsKey(dept.getParentId())) {
+                deptMap.put(dept.getParentId(), new ArrayList<>());
+            }
+            deptMap.get(dept.getParentId()).add(deptTree);
+        }
+        for (DeptTreeDTO deptTree : treeList) {
+            fillTree(deptTree, deptMap);
+        }
+        return treeList;
+    }
+
 
     // 封装 SSOClient 的请求
-
 
     /**
      * 校验数据权限
@@ -809,10 +872,22 @@ public class UserHelper {
      * 请求根据关键字查询用户ID列表
      *
      * @param keyword 关键字
+     * @param token   请求用户 token
      * @return userId List
      */
-    private static List<UserInfoDTO> requestSearchUserList(String keyword) {
-        return ParseUtil.parseUserInfoListResponse(SsoClient.requestSearchUserList(keyword));
+    private static List<UserInfoDTO> requestSearchUserList(String keyword, String token) {
+        return ParseUtil.parseUserInfoListResponse(SsoClient.requestSearchUserList(keyword, token));
+    }
+
+    /**
+     * 请求根据关键字查询用户ID列表
+     *
+     * @param keyword 关键字
+     * @param token   请求用户 token
+     * @return userId List
+     */
+    private static List<Integer> requestSearchUserIdList(String keyword, String token) {
+        return ParseUtil.parseIdListResponse(SsoClient.requestSearchUserIdList(keyword, token));
     }
 
     /**
@@ -870,11 +945,11 @@ public class UserHelper {
      *
      * @return 所有部门列表
      */
-    public static List<DeptDTO> loadAllDept() {
+    private static List<DeptDTO> loadAllDept() {
         return ParseUtil.parseDeptListResponse(SsoClient.loadAllDept());
     }
 
-    public static Map<Integer, List<DeptUserDTO>> loadAllUserDetail() {
+    private static Map<Integer, List<DeptUserDTO>> loadAllUserDetail() {
         int index = 0;
         Map<Integer, List<DeptUserDTO>> deptUserMap = new HashMap<>(DEFAULT_MAP_SIZE);
         while (true) {
@@ -934,10 +1009,12 @@ public class UserHelper {
 
     private static UserCache parseCache(DeptUserDTO user, DeptDTO dept, int managerCode) {
         UserCache userData = new UserCache();
+        userData.setDeptName(dept.getName());
         userData.setDeptDesr(dept.getDesr());
         userData.setDeptId(dept.getId());
         userData.setAccountId(user.getAccountId());
         userData.setName(user.getName());
+        userData.setIsLeader(user.getIsLeader());
         userData.setPosition(user.getPost().getPosition());
         userData.setStandardPost(user.getPost().getStandardPost());
         userData.setManagerCode(managerCode);
@@ -952,6 +1029,17 @@ public class UserHelper {
         deptCache.setParentId(dept.getParentId());
         deptCache.setLeaderMap(leaderMap);
         return deptCache;
+    }
+
+    private static void fillTree(DeptTreeDTO tree, Map<Integer, List<DeptTreeDTO>> deptMap) {
+        if (!deptMap.containsKey(tree.getId())) {
+            return;
+        }
+        List<DeptTreeDTO> deptList = deptMap.get(tree.getId());
+        for (DeptTreeDTO deptTree : deptList) {
+            fillTree(deptTree, deptMap);
+        }
+        tree.getChildrenDeptList().addAll(deptList);
     }
 
 }

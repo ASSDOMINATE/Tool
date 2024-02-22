@@ -2,29 +2,38 @@ package cn.hoxinte.tool.clients.redis;
 
 import cn.hoxinte.tool.utils.BaseUtil;
 import com.alibaba.fastjson.support.spring.GenericFastJsonRedisSerializer;
+import org.redisson.Redisson;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import redis.clients.jedis.*;
 
 import java.util.*;
 
 /**
  * Redis 基础操作客户端
- * 支持单点、哨兵、集群，根据配置文件优先级为 集群>哨兵>单点
+ * 支持单点、哨兵、集群，根据配置文件优先级为 集群、哨兵、单点
  *
  * @author dominate
  */
 public class RedisClient {
 
-    private static final boolean USE_CLUSTER = JedisConf.CLUSTER_NODES.length > 1;
-    private static final boolean USE_SENTINEL = !USE_CLUSTER && (JedisConf.SENTINEL_NODES.length > 1);
 
     private static final int DEFAULT_OVERTIME_SECONDS = 60 * 5;
     private static final int MAX_ATTEMPTS = 3;
 
     // 初始化
 
+    /**
+     * JedisPool JedisSentinelPool 需要执行完成后把取出来对 Jedis 释放连接
+     * JedisCluster 不需要手动释放连接，将在执行完成自动释放
+     */
+
     private static final JedisPool JEDIS_POOL;
     private static final JedisSentinelPool JEDIS_SENTINEL_POOL;
     private static final JedisCluster JEDIS_CLUSTER;
+
+    private static RedissonClient REDISSON;
+
 
     static {
         JEDIS_POOL = initialPool();
@@ -32,8 +41,15 @@ public class RedisClient {
         JEDIS_CLUSTER = initialCluster();
     }
 
+    private static RedissonClient getRedisson() {
+        if (REDISSON == null) {
+            REDISSON = Redisson.create(RedisConfig.redissonConfig());
+        }
+        return REDISSON;
+    }
+
     private static Jedis getJedis() {
-        if (USE_SENTINEL) {
+        if (RedisConfig.USE_SENTINEL) {
             return JEDIS_SENTINEL_POOL.getResource();
         }
         return JEDIS_POOL.getResource();
@@ -51,26 +67,26 @@ public class RedisClient {
     }
 
     private static JedisCluster initialCluster() {
-        if (!USE_CLUSTER) {
+        if (!RedisConfig.USE_CLUSTER) {
             return null;
         }
-        Set<HostAndPort> clusterNode = parseHostAndPort(JedisConf.CLUSTER_NODES);
-        return new JedisCluster(clusterNode, JedisConf.client(), MAX_ATTEMPTS, JedisConf.genericPool());
+        Set<HostAndPort> clusterNode = parseHostAndPort(RedisConfig.CLUSTER_NODES);
+        return new JedisCluster(clusterNode, RedisConfig.jedisClient(), MAX_ATTEMPTS, RedisConfig.genericPool());
     }
 
     private static JedisSentinelPool initialSentinelPool() {
-        if (!USE_SENTINEL) {
+        if (!RedisConfig.USE_SENTINEL) {
             return null;
         }
-        Set<HostAndPort> sentinelNode = parseHostAndPort(JedisConf.SENTINEL_NODES);
-        return new JedisSentinelPool(JedisConf.SENTINEL_MASTER_NAME, sentinelNode, JedisConf.pool(), JedisConf.client(), JedisConf.client());
+        Set<HostAndPort> sentinelNode = parseHostAndPort(RedisConfig.SENTINEL_NODES);
+        return new JedisSentinelPool(RedisConfig.SENTINEL_MASTER_NAME, sentinelNode, RedisConfig.jedisPool(), RedisConfig.jedisClient(), RedisConfig.jedisClient());
     }
 
     private static JedisPool initialPool() {
-        if (USE_CLUSTER || USE_SENTINEL) {
+        if (RedisConfig.USE_CLUSTER || RedisConfig.USE_SENTINEL) {
             return null;
         }
-        return new JedisPool(JedisConf.pool(), new HostAndPort(JedisConf.HOST, JedisConf.PORT), JedisConf.client());
+        return new JedisPool(RedisConfig.jedisPool(), new HostAndPort(RedisConfig.HOST, RedisConfig.PORT), RedisConfig.jedisClient());
     }
 
 
@@ -134,12 +150,23 @@ public class RedisClient {
 
     /**
      * 为 Key 设置过期时间
-     * @param key 缓存key
+     *
+     * @param key     缓存key
      * @param seconds 缓存过期时间 秒
      * @return Long 操作结果
      */
     public static long expire(String key, int seconds) {
         return expire(serialize(key), seconds);
+    }
+
+    /**
+     * 获取分布式锁
+     *
+     * @param key 锁的值
+     * @return 是否成功上锁
+     */
+    public static RLock lock(String key) {
+        return getRedisson().getLock(key);
     }
 
     // 读取缓存
@@ -159,6 +186,7 @@ public class RedisClient {
      *
      * @param key    缓存key
      * @param tClass 元素类型
+     * @param <T>    取出数据类
      * @return Object 缓存对象
      */
     public static <T> T get(String key, Class<T> tClass) {
@@ -166,7 +194,7 @@ public class RedisClient {
     }
 
     /**
-     * 读取缓存值 List<T>
+     * 读取缓存值 List
      *
      * @param key    缓存key
      * @param tClass 列表元素类型
@@ -179,7 +207,7 @@ public class RedisClient {
     }
 
     /**
-     * 读取缓存值 Map<K,V>
+     * 读取缓存值 Map
      *
      * @param key    缓存key
      * @param kClass Map元素Key类型
@@ -210,6 +238,7 @@ public class RedisClient {
      * @param key    散列缓存key
      * @param field  字段
      * @param tClass 元素类型
+     * @param <T>    元素类型
      * @return Object 缓存对象
      */
     public static <T> T hGet(String key, String field, Class<T> tClass) {
@@ -220,7 +249,7 @@ public class RedisClient {
      * 读取散列缓存中所有 值
      *
      * @param key 散列缓存key
-     * @return Map<String, Object> key 字段 ，value 缓存对象
+     * @return Map key 字段 ，value 缓存对象
      */
     public static Map<String, Object> hGetAll(String key) {
         Map<byte[], byte[]> unSerializeMap = hGetAllValues(serialize(key));
@@ -236,7 +265,8 @@ public class RedisClient {
      *
      * @param key    散列缓存key
      * @param tClass 元素类型
-     * @return Map<String, Object> key 字段 ，value 缓存对象
+     * @param <T>    元素类型
+     * @return Map key 字段 ，value 缓存对象
      */
     public static <T> Map<String, T> hGetAll(String key, Class<T> tClass) {
         Map<byte[], byte[]> unSerializeMap = hGetAllValues(serialize(key));
@@ -387,6 +417,7 @@ public class RedisClient {
      * @param start  开始位置
      * @param end    结束位置
      * @param tClass 元素类型
+     * @param <T>    元素类型
      * @return 数据列表
      */
     public static <T> List<T> listRange(String key, long start, long end, Class<T> tClass) {
@@ -416,6 +447,7 @@ public class RedisClient {
      *
      * @param key    缓存key
      * @param tClass 元素类型
+     * @param <T>    元素类型
      * @return 列表的第一个元素
      */
     public static <T> T leftPop(String key, Class<T> tClass) {
@@ -437,6 +469,7 @@ public class RedisClient {
      *
      * @param key    缓存key
      * @param tClass 元素类型
+     * @param <T>    元素类型
      * @return 列表的最后一个元素
      */
     public static <T> T rightPop(String key, Class<T> tClass) {
@@ -494,7 +527,7 @@ public class RedisClient {
     //TODO 需要重新调整下异常处理
 
     private static Long setAdd(byte[] key, byte[] value) {
-        if (USE_CLUSTER) {
+        if (RedisConfig.USE_CLUSTER) {
             JEDIS_CLUSTER.sadd(key, value);
             return JEDIS_CLUSTER.sadd(key, value);
         }
@@ -510,7 +543,7 @@ public class RedisClient {
     }
 
     private static Boolean sisMember(byte[] key, byte[] value) {
-        if (USE_CLUSTER) {
+        if (RedisConfig.USE_CLUSTER) {
             return JEDIS_CLUSTER.sismember(key, value);
         }
         try (Jedis jedis = getJedis()) {
@@ -522,7 +555,7 @@ public class RedisClient {
     }
 
     private static Long sCard(byte[] key) {
-        if (USE_CLUSTER) {
+        if (RedisConfig.USE_CLUSTER) {
             return JEDIS_CLUSTER.scard(key);
         }
         try (Jedis jedis = getJedis()) {
@@ -534,7 +567,7 @@ public class RedisClient {
     }
 
     private static void pipeLinedSet(byte[] key, byte[]... value) {
-        if (USE_CLUSTER) {
+        if (RedisConfig.USE_CLUSTER) {
             JEDIS_CLUSTER.sadd(key, value);
             return;
         }
@@ -548,7 +581,7 @@ public class RedisClient {
     }
 
     private static List<byte[]> lRange(byte[] key, long start, long end) {
-        if (USE_CLUSTER) {
+        if (RedisConfig.USE_CLUSTER) {
             return JEDIS_CLUSTER.lrange(key, start, end);
         }
         try (Jedis jedis = getJedis()) {
@@ -560,7 +593,7 @@ public class RedisClient {
     }
 
     private static long lLen(byte[] key) {
-        if (USE_CLUSTER) {
+        if (RedisConfig.USE_CLUSTER) {
             return JEDIS_CLUSTER.llen(key);
         }
         try (Jedis jedis = getJedis()) {
@@ -572,7 +605,7 @@ public class RedisClient {
     }
 
     private static byte[] lPop(byte[] key) {
-        if (USE_CLUSTER) {
+        if (RedisConfig.USE_CLUSTER) {
             return JEDIS_CLUSTER.lpop(key);
         }
         try (Jedis jedis = getJedis()) {
@@ -584,7 +617,7 @@ public class RedisClient {
     }
 
     private static byte[] rPop(byte[] key) {
-        if (USE_CLUSTER) {
+        if (RedisConfig.USE_CLUSTER) {
             return JEDIS_CLUSTER.rpop(key);
         }
         try (Jedis jedis = getJedis()) {
@@ -596,7 +629,7 @@ public class RedisClient {
     }
 
     private static String lSet(byte[] key, long index, byte[] value) {
-        if (USE_CLUSTER) {
+        if (RedisConfig.USE_CLUSTER) {
             return JEDIS_CLUSTER.lset(key, index, value);
         }
         try (Jedis jedis = getJedis()) {
@@ -609,7 +642,7 @@ public class RedisClient {
 
 
     private static Long lPush(byte[] key, byte[] value) {
-        if (USE_CLUSTER) {
+        if (RedisConfig.USE_CLUSTER) {
             return JEDIS_CLUSTER.lpush(key, value);
         }
         try (Jedis jedis = getJedis()) {
@@ -621,7 +654,7 @@ public class RedisClient {
     }
 
     private static Long rPush(byte[] key, byte[] value) {
-        if (USE_CLUSTER) {
+        if (RedisConfig.USE_CLUSTER) {
             return JEDIS_CLUSTER.rpush(key, value);
         }
         try (Jedis jedis = getJedis()) {
@@ -633,7 +666,7 @@ public class RedisClient {
     }
 
     private static boolean hasKey(byte[] key) {
-        if (USE_CLUSTER) {
+        if (RedisConfig.USE_CLUSTER) {
             return JEDIS_CLUSTER.exists(key);
         }
         try (Jedis jedis = getJedis()) {
@@ -645,7 +678,7 @@ public class RedisClient {
     }
 
     private static Long setPersistKeyValue(byte[] key, byte[] value) {
-        if (USE_CLUSTER) {
+        if (RedisConfig.USE_CLUSTER) {
             return JEDIS_CLUSTER.persist(key);
         }
         try (Jedis jedis = getJedis()) {
@@ -658,7 +691,7 @@ public class RedisClient {
     }
 
     private static Long removeKey(byte[] key) {
-        if (USE_CLUSTER) {
+        if (RedisConfig.USE_CLUSTER) {
             return JEDIS_CLUSTER.del(key);
         }
         try (Jedis jedis = getJedis()) {
@@ -670,7 +703,7 @@ public class RedisClient {
     }
 
     private static String setKeyValue(byte[] key, byte[] value, int seconds) {
-        if (USE_CLUSTER) {
+        if (RedisConfig.USE_CLUSTER) {
             return JEDIS_CLUSTER.setex(key, seconds, value);
         }
         try (Jedis jedis = getJedis()) {
@@ -682,7 +715,7 @@ public class RedisClient {
     }
 
     private static Long hRemoveFields(byte[] key, byte[]... fields) {
-        if (USE_CLUSTER) {
+        if (RedisConfig.USE_CLUSTER) {
             return JEDIS_CLUSTER.hdel(key, fields);
         }
         try (Jedis jedis = getJedis()) {
@@ -694,7 +727,7 @@ public class RedisClient {
     }
 
     private static Long lRem(byte[] key, byte[] value) {
-        if (USE_CLUSTER) {
+        if (RedisConfig.USE_CLUSTER) {
             return JEDIS_CLUSTER.lrem(key, 0, value);
         }
         try (Jedis jedis = getJedis()) {
@@ -706,7 +739,7 @@ public class RedisClient {
     }
 
     private static boolean hHasKey(byte[] key, byte[] field) {
-        if (USE_CLUSTER) {
+        if (RedisConfig.USE_CLUSTER) {
             return JEDIS_CLUSTER.hexists(key, field);
         }
         try (Jedis jedis = getJedis()) {
@@ -719,7 +752,7 @@ public class RedisClient {
 
 
     private static long ttl(byte[] key) {
-        if (USE_CLUSTER) {
+        if (RedisConfig.USE_CLUSTER) {
             return JEDIS_CLUSTER.ttl(key);
         }
         try (Jedis jedis = getJedis()) {
@@ -731,7 +764,7 @@ public class RedisClient {
     }
 
     private static Map<byte[], byte[]> hGetAllValues(byte[] key) {
-        if (USE_CLUSTER) {
+        if (RedisConfig.USE_CLUSTER) {
             return JEDIS_CLUSTER.hgetAll(key);
         }
         try (Jedis jedis = getJedis()) {
@@ -743,7 +776,7 @@ public class RedisClient {
     }
 
     private static byte[] hGetValue(byte[] key, byte[] field) {
-        if (USE_CLUSTER) {
+        if (RedisConfig.USE_CLUSTER) {
             return JEDIS_CLUSTER.hget(key, field);
         }
         try (Jedis jedis = getJedis()) {
@@ -755,7 +788,7 @@ public class RedisClient {
     }
 
     private static Long hSetKeyValue(byte[] key, byte[] field, byte[] value) {
-        if (USE_CLUSTER) {
+        if (RedisConfig.USE_CLUSTER) {
             return JEDIS_CLUSTER.hset(key, field, value);
         }
         try (Jedis jedis = getJedis()) {
@@ -767,7 +800,7 @@ public class RedisClient {
     }
 
     private static byte[] getValue(byte[] key) {
-        if (USE_CLUSTER) {
+        if (RedisConfig.USE_CLUSTER) {
             return JEDIS_CLUSTER.get(key);
         }
         try (Jedis jedis = getJedis()) {

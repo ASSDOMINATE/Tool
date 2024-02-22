@@ -10,9 +10,11 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 import java.io.File;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -68,6 +70,20 @@ public class AwsS3Helper {
                 return parseUrl(key);
             }
             s3Client.putObject(BUCKET, key, file);
+            return parseUrl(key);
+        } catch (Exception e) {
+            // upload error
+            return StringUtil.EMPTY;
+        }
+    }
+
+    public static String upload(String key, InputStream inputStream, ObjectMetadata objectMetadata) {
+        try {
+            AmazonS3 s3Client = getClient();
+            if (s3Client.doesObjectExist(BUCKET, key)) {
+                return parseUrl(key);
+            }
+            s3Client.putObject(BUCKET, key, inputStream, objectMetadata);
             return parseUrl(key);
         } catch (Exception e) {
             // upload error

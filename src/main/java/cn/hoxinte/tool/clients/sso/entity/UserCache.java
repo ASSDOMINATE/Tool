@@ -37,6 +37,11 @@ public class UserCache implements Serializable {
     private String deptDesr;
 
     /**
+     * 部门名称
+     */
+    private String deptName;
+
+    /**
      * 职位
      */
     private String position;
@@ -56,6 +61,8 @@ public class UserCache implements Serializable {
      */
     private Integer deptId;
 
+    private Boolean isLeader;
+
 
     public static UserCache defaultData() {
         final int emptyInt = 0;
@@ -63,11 +70,13 @@ public class UserCache implements Serializable {
         UserCache data = new UserCache();
         data.setAccountId(emptyInt);
         data.setName(emptyStr);
+        data.setDeptName(emptyStr);
         data.setDeptDesr(emptyStr);
         data.setPosition(emptyStr);
         data.setStandardPost(emptyStr);
         data.setManagerCode(emptyInt);
         data.setDeptId(emptyInt);
+        data.setIsLeader(false);
         return data;
     }
 

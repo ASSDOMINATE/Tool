@@ -2,6 +2,7 @@ package cn.hoxinte.tool.clients.redis;
 
 import cn.hoxinte.tool.utils.LoadUtil;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+import org.redisson.config.Config;
 import redis.clients.jedis.Connection;
 import redis.clients.jedis.DefaultJedisClientConfig;
 import redis.clients.jedis.JedisPoolConfig;
@@ -12,7 +13,7 @@ import redis.clients.jedis.JedisPoolConfig;
  * @author dominate
  * @since 2022/09/14
  */
-public class JedisConf {
+public class RedisConfig {
 
     private static final int EVICTION_RUN_NUM = 3;
 
@@ -29,6 +30,8 @@ public class JedisConf {
     protected static final String HOST = LoadUtil.getProperty("spring.redis.host");
     protected static final int PORT = LoadUtil.getIntegerProperty("spring.redis.port");
 
+    private static final String SINGLE_ADDRESS = "redis://" + HOST + ":" + PORT;
+
     // 哨兵
     protected static final String SENTINEL_MASTER_NAME = LoadUtil.getProperty("spring.redis.sentinel.master");
     protected static final String[] SENTINEL_NODES = LoadUtil.getArrayProperty("spring.redis.sentinel.nodes");
@@ -36,17 +39,23 @@ public class JedisConf {
     // 集群
     protected static final String[] CLUSTER_NODES = LoadUtil.getArrayProperty("spring.redis.cluster.nodes");
 
+
+    protected static final boolean USE_CLUSTER = RedisConfig.CLUSTER_NODES.length > 1;
+    protected static final boolean USE_SENTINEL = !USE_CLUSTER && (RedisConfig.SENTINEL_NODES.length > 1);
+
     private static final int TIME_OUT = LOAD_TIMEOUT == 0 ? 100000 : LOAD_TIMEOUT;
 
-    public static DefaultJedisClientConfig client(){
+    public static DefaultJedisClientConfig jedisClient() {
         return DefaultJedisClientConfig.builder()
                 .password(PASSWORD)
                 .database(DATABASE)
                 .timeoutMillis(TIME_OUT)
+                .connectionTimeoutMillis(TIME_OUT)
+                .socketTimeoutMillis(TIME_OUT)
                 .build();
     }
 
-    public static JedisPoolConfig pool() {
+    public static JedisPoolConfig jedisPool() {
         JedisPoolConfig config = new JedisPoolConfig();
         setPoolConfig(config);
         return config;
@@ -55,6 +64,44 @@ public class JedisConf {
     public static GenericObjectPoolConfig<Connection> genericPool() {
         GenericObjectPoolConfig<Connection> config = new GenericObjectPoolConfig<>();
         setPoolConfig(config);
+        return config;
+    }
+
+    public static Config redissonConfig() {
+        Config config = new Config();
+        if (USE_SENTINEL) {
+            config.useSentinelServers()
+                    .addSentinelAddress(SENTINEL_NODES)
+                    .setPassword(PASSWORD)
+                    .setMasterConnectionPoolSize(MAX_TOTAL)
+                    .setSlaveConnectionPoolSize(MAX_TOTAL)
+                    .setMasterConnectionMinimumIdleSize(MIN_IDLE)
+                    .setSlaveConnectionMinimumIdleSize(MIN_IDLE)
+                    .setIdleConnectionTimeout(TIME_OUT)
+                    .setConnectTimeout(TIME_OUT);
+            return config;
+        }
+        if (USE_CLUSTER) {
+            config.useClusterServers()
+                    .setPassword(PASSWORD)
+                    .addNodeAddress(CLUSTER_NODES)
+                    .setMasterConnectionPoolSize(MAX_TOTAL)
+                    .setSlaveConnectionPoolSize(MAX_TOTAL)
+                    .setMasterConnectionMinimumIdleSize(MIN_IDLE)
+                    .setSlaveConnectionMinimumIdleSize(MIN_IDLE)
+                    .setIdleConnectionTimeout(TIME_OUT)
+                    .setConnectTimeout(TIME_OUT)
+                    .setTimeout(TIME_OUT);
+            return config;
+        }
+        config.useSingleServer()
+                .setPassword(PASSWORD)
+                .setAddress(SINGLE_ADDRESS)
+                .setConnectionPoolSize(MAX_TOTAL)
+                .setConnectionMinimumIdleSize(MIN_IDLE)
+                .setIdleConnectionTimeout(TIME_OUT)
+                .setConnectTimeout(TIME_OUT)
+                .setTimeout(TIME_OUT);
         return config;
     }
 

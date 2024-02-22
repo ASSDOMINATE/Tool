@@ -20,7 +20,7 @@ import java.util.Set;
  * @since 2022/10/11
  */
 @Slf4j
-public final class MailHelper {
+public class MailHelper {
 
 
     /**

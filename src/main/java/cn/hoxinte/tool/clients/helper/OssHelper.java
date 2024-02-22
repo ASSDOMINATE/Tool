@@ -11,6 +11,7 @@ import com.aliyun.oss.model.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.entity.ContentType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -92,6 +93,7 @@ public class OssHelper {
      * 读取OSS文件byte数组
      *
      * @param url 文件路径
+     * @return byte 文件字节
      */
     public static byte[] downloadByte(String url) {
         OSS client = build();
@@ -200,12 +202,27 @@ public class OssHelper {
 
 
     /**
+     * 读取OSS文件
+     *
+     * @param ossUrl 文件路径
+     * @return MultipartFile
+     */
+    public static MultipartFile readFile(String ossUrl) {
+        if (!ossUrl.contains(SLASH)) {
+            return byte2MultipartFile(downloadByte(ossUrl), ossUrl);
+        }
+        String fileName = ossUrl.substring(ossUrl.lastIndexOf(SLASH));
+        return byte2MultipartFile(downloadByte(ossUrl), fileName);
+    }
+
+
+    /**
      * byte[]转MultipartFile
      *
      * @param bytes byte数组
      * @return MultipartFile文件
      */
-    private static MockMultipartFile byte2MultipartFile(byte[] bytes, String name) {
+    private static MultipartFile byte2MultipartFile(byte[] bytes, String name) {
         InputStream inputStream = new ByteArrayInputStream(bytes);
         MockMultipartFile file = null;
         try {

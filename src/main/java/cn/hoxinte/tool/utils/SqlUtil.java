@@ -6,7 +6,7 @@ package cn.hoxinte.tool.utils;
  *
  * @author dominate
  */
-public class SqlUtil {
+public final class SqlUtil {
 
     private static final String SQL_LIMIT = "limit ";
 

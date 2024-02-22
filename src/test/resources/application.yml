@@ -23,3 +23,10 @@ sso:
   host: http://10.200.203.1:8001/
   limit: 500
   platform-id: 1
+mail:
+  accounts: postmaster@italkcloud.cn
+  passwords: KPdeqD2@DE12Xsq
+  smtp-host: smtp.qiye.aliyun.com
+  port: 465
+  send:
+    name: Hoxinte

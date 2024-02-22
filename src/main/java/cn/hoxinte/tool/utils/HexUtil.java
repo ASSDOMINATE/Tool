@@ -6,7 +6,7 @@ package cn.hoxinte.tool.utils;
  * @author dominate
  * @since 2022/11/1
  */
-public class HexUtil {
+public final class HexUtil {
 
 
     private static final String FIRST_SIGN_NUM = "1";

@@ -23,7 +23,7 @@ public final class BaseUtil {
      * @param vClass value class
      * @param <K>    key class
      * @param <V>    key class
-     * @return Map<K, V>
+     * @return Map
      */
     public static <K, V> Map<K, V> obj2Map(Object obj, Class<K> kClass, Class<V> vClass) {
         Map<K, V> result = new HashMap<>();
@@ -42,7 +42,7 @@ public final class BaseUtil {
      * @param obj    原始对象
      * @param tClass 目标 Class
      * @param <T>    目标 Class
-     * @return List<T>
+     * @return List
      */
     public static <T> List<T> obj2List(Object obj, Class<T> tClass) {
         List<T> result = new ArrayList<>();
@@ -138,10 +138,10 @@ public final class BaseUtil {
     }
 
     /**
-     * 对象转 Map<String,Object>
+     * 对象转 Map String,Object
      *
      * @param object 需要转换为Map的对象
-     * @return 转换后的 Map<String,Object>
+     * @return 转换后的 Map String,Object
      */
     public static Map<String, Object> beanToMap(Object object) {
         Field[] fields = object.getClass().getDeclaredFields();
@@ -159,7 +159,28 @@ public final class BaseUtil {
     }
 
     /**
-     * Map<String,Object> 转换为指定对象
+     * 对象转Map
+     *
+     * @param object 需要转换为Map的对象
+     * @return 转换后的Map
+     */
+    public static TreeMap<String, Object> beanToTreeMap(Object object) {
+        Field[] fields = object.getClass().getDeclaredFields();
+        try {
+            TreeMap<String, Object> map = new TreeMap<>();
+            for (Field field : fields) {
+                field.setAccessible(true);
+                map.put(field.getName(), field.get(object));
+            }
+            return map;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new TreeMap<>();
+        }
+    }
+
+    /**
+     * Map - String,Object 转换为指定对象
      *
      * @param map       需要转换的Map
      * @param beanClass 目标对象Class
@@ -188,7 +209,7 @@ public final class BaseUtil {
     }
 
     /**
-     * Map<String,String> 转换为指定对象
+     * Map - String,String 转换为指定对象
      *
      * @param map       需要转换的Map
      * @param beanClass 目标对象Class
@@ -222,10 +243,10 @@ public final class BaseUtil {
     }
 
     /**
-     * 对象转换为 Map<String,String>
+     * 对象转换为 Map - String,String
      *
      * @param object 待转换对象
-     * @return Map<String, String>
+     * @return Map - String, String
      */
     public static Map<String, String> beanToStringMap(Object object) {
         Field[] fields = object.getClass().getDeclaredFields();

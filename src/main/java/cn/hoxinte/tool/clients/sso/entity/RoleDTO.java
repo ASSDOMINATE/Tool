@@ -9,9 +9,8 @@ import java.io.Serializable;
 /**
  * 角色信息.
  *
- * @Author 计泽汉
- * @Date 2022/10/21
- * @Version 1.0
+ * @author dominate
+ * @since 2022/10/21
  */
 @Data
 @EqualsAndHashCode(callSuper = false)

@@ -14,7 +14,7 @@ import java.util.Map;
  * @author dominate
  * @since 2022/12/16
  */
-public class JsonUtil {
+public final class JsonUtil {
     private static final String EMPTY_STRING = "";
 
 

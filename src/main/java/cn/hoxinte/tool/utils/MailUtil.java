@@ -3,6 +3,8 @@ package cn.hoxinte.tool.utils;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
+import javax.mail.Authenticator;
+import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 import javax.mail.Transport;
 import javax.mail.internet.*;
@@ -31,8 +33,10 @@ public final class MailUtil {
     private static final String[] PROPERTY_CONNECT_TIMEOUT = {"mail.smtp.connectiontimeout", "3600"};
     private static final String[] PROPERTY_WRITE_TIMEOUT = {"mail.smtp.writetimeout", "3600"};
     private static final String[] PROPERTY_TIMEOUT = {"mail.smtp.timeout", "3600"};
+    private static final String[] PROPERTY_SOCKET_FACTORY = {"mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory"};
     private static final String[][] PROPERTY_LIST = {PROPERTY_PROTOCOL, PROPERTY_TIMEOUT, PROPERTY_CONNECT_TIMEOUT,
-            PROPERTY_WRITE_TIMEOUT, PROPERTY_AUTH, PROPERTY_START_TLS};
+            PROPERTY_WRITE_TIMEOUT, PROPERTY_AUTH, PROPERTY_START_TLS, PROPERTY_SOCKET_FACTORY};
+
 
     private static final String PROPERTY_SSL_TRUST = "mail.smtp.ssl.trust";
     private static final String PROPERTY_HOST = "mail.smtp.host";
@@ -43,13 +47,14 @@ public final class MailUtil {
     private static final String TEXT_HTML_TYPE = "text/html;charset=UTF-8";
     private static final Map<String, Session> SESSION_MAP = new HashMap<>();
 
-    static{
+    static {
         // JAVA 11 默认配置
         // SSLv3, TLSv1, TLSv1.1, RC4, DES, MD5withRSA,DH keySize < 1024, EC keySize < 224, 3DES_EDE_CBC, anon, NULL,
         // include jdk.disabled.namedCurves
-        Security.setProperty("jdk.tls.disabledAlgorithms","RC4, DES, MD5withRSA,DH keySize < 1024, EC keySize < 224, " +
+        Security.setProperty("jdk.tls.disabledAlgorithms", "RC4, DES, MD5withRSA,DH keySize < 1024, EC keySize < 224, " +
                 "3DES_EDE_CBC, anon, NULL,include jdk.disabled.namedCurves");
     }
+
     /**
      * 发送邮件
      *
@@ -70,6 +75,7 @@ public final class MailUtil {
      * 发送邮件
      *
      * @param host               邮件服务器
+     * @param port               端口
      * @param sendName           发送名称
      * @param account            邮件账号
      * @param password           邮件密码
@@ -77,6 +83,7 @@ public final class MailUtil {
      * @param text               文字内容
      * @param imgUrls            图片地址
      * @param receiveMailAccount 收件人列表
+     * @return 是否发送成功
      */
     public static boolean sendMail(String host, int port, String sendName, String account, String password, String subject, String text, String[] imgUrls, String... receiveMailAccount) {
         return sendMail(conf(host, port, sendName, account, password), subject, text, imgUrls, receiveMailAccount);
@@ -93,7 +100,7 @@ public final class MailUtil {
 
     private static boolean sendMail(MailConf conf, String subject, String text, String[] imgUrls, String... receiveMailAccount) {
         // 根据配置创建会话对象, 用于和邮件服务器交互
-        Session session = getSession(conf.getHost(), conf.getPort());
+        Session session = getSession(conf.getHost(), conf.getPort(), conf.getAccount(), conf.getPassword());
         try {
             // 创建一封邮件
             MailSender sender = new MailSender(subject, text, imgUrls, conf.getAccount(), conf.getSendName(), receiveMailAccount);
@@ -107,12 +114,13 @@ public final class MailUtil {
             transport.close();
             return true;
         } catch (Exception e) {
+            e.printStackTrace();
             log.error("MailHelper send mail error ", e);
             return false;
         }
     }
 
-    private static Session getSession(String host, int port) {
+    private static Session getSession(String host, int port, String account, String password) {
         if (SESSION_MAP.containsKey(host)) {
             return SESSION_MAP.get(host);
         }
@@ -125,8 +133,13 @@ public final class MailUtil {
         props.setProperty(PROPERTY_SSL_TRUST, host);
         props.setProperty(PROPERTY_HOST, host);
         props.setProperty(PROPERTY_PORT, String.valueOf(port));
+        Session session = Session.getDefaultInstance(props, new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(account, password);
+            }
+        });
         // 需要请求认证
-        Session session = Session.getInstance(props);
         SESSION_MAP.put(host, session);
         return session;
     }
