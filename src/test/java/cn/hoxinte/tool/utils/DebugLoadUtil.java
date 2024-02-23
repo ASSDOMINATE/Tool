@@ -30,7 +30,7 @@ public class DebugLoadUtil {
     public void testLoad() {
         String obj = LoadUtil.getSourceProperty("application", "spring.profiles.active");
         System.out.println(obj);
-        obj = LoadUtil.getProperty("redis.database");
+        obj = LoadUtil.getProperty("spring.redis.database");
         System.out.println(obj);
     }
 }

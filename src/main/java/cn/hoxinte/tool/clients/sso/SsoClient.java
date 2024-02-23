@@ -25,15 +25,15 @@ public class SsoClient {
     /**
      * SSO服务器地址
      */
-    private static final String SSO_SERVER = LoadUtil.getProperty("sso.host");
+    private static final String SSO_SERVER = LoadUtil.getProperty("hoxinte.sso.host");
     /**
      * 拉取列表大小限制
      */
-    private static final int REQUEST_LIST_LIMIT = LoadUtil.getIntegerProperty("sso.limit");
+    private static final int REQUEST_LIST_LIMIT = LoadUtil.getIntegerProperty("hoxinte.sso.limit");
     /**
      * 平台ID
      */
-    private static final int SET_PLATFORM_ID = LoadUtil.getIntegerProperty("sso.platform-id");
+    private static final int SET_PLATFORM_ID = LoadUtil.getIntegerProperty("hoxinte.sso.platform-id");
 
     private static final String PARAM_SPLIT = ",";
     private static final String EMPTY_STRING = "";
@@ -145,6 +145,7 @@ public class SsoClient {
      */
     public static String requestSearchUserList(String keyword, String token) {
         // user/$keyword$
+        System.out.println("keyword " + keyword);
         return sendGetWithValue(RestTargetEnum.USER_KEYWORD, createTokenHeader(token), keyword);
     }
 

@@ -19,14 +19,18 @@ spring:
         max-idle: 20
         min-idle: 5
         max-active: 500
-sso:
-  host: http://10.200.203.1:8001/
-  limit: 500
-  platform-id: 1
-mail:
-  accounts: postmaster@italkcloud.cn
-  passwords: KPdeqD2@DE12Xsq
-  smtp-host: smtp.qiye.aliyun.com
-  port: 465
-  send:
-    name: Hoxinte
+hoxinte:
+  sso:
+    ## http://10.200.203.1:8001/
+    host: http://127.0.0.1:7001/
+    limit: 500
+    platform-id: 1
+  mail:
+    accounts: postmaster@italkcloud.cn
+    passwords: KPdeqD2@DE12Xsq
+    smtp-host: smtp.qiye.aliyun.com
+    port: 465
+    send:
+      name: Hoxinte
+  jwt:
+    secret: cuAihCz53DZRjZwbsGcZJ2Ai6At+T142uphtJMsk7iQ=

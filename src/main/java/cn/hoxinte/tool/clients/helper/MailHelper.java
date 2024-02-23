@@ -36,13 +36,13 @@ public class MailHelper {
      * haiwaicuishou@hotmail.com - Hw123456
      * haiwai0001@hotmail.com/haiwai0002@hotmail.com/haiwai0003@hotmail.com/haiwai0004@hotmail.com - Haiwaicuishou
      */
-    private static final String[] EMAIL_ACCOUNTS = LoadUtil.getArrayProperty("mail.accounts");
-    private static final String[] EMAIL_PASSWORDS = LoadUtil.getArrayProperty("mail.passwords");
+    private static final String[] EMAIL_ACCOUNTS = LoadUtil.getArrayProperty("hoxinte.mail.accounts");
+    private static final String[] EMAIL_PASSWORDS = LoadUtil.getArrayProperty("hoxinte.mail.passwords");
     private static final int TRY_COUNT = EMAIL_ACCOUNTS.length;
 
-    private static final String EMAIL_NAME = LoadUtil.getProperty("mail.send.name");
-    private static final String SMTP_HOST = LoadUtil.getProperty("mail.smtp-host");
-    private static final int PORT = LoadUtil.getIntegerProperty("mail.port");
+    private static final String EMAIL_NAME = LoadUtil.getProperty("hoxinte.mail.send.name");
+    private static final String SMTP_HOST = LoadUtil.getProperty("hoxinte.mail.smtp-host");
+    private static final int PORT = LoadUtil.getIntegerProperty("hoxinte.mail.port");
 
     private static final String MAIL_SEND_QUEUE_KEY = "queue:mail:send";
 

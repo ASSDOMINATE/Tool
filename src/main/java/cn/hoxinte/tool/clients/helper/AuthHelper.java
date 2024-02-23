@@ -19,7 +19,7 @@ import java.util.Map;
  */
 public class AuthHelper {
 
-    private static final String JWT_SECRET = LoadUtil.getProperty("jwt.secret");
+    private static final String JWT_SECRET = LoadUtil.getProperty("hoxinte.jwt.secret");
 
     private static final String VALID_TIME = "time";
 
