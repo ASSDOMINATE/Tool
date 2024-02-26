@@ -145,7 +145,6 @@ public class SsoClient {
      */
     public static String requestSearchUserList(String keyword, String token) {
         // user/$keyword$
-        System.out.println("keyword " + keyword);
         return sendGetWithValue(RestTargetEnum.USER_KEYWORD, createTokenHeader(token), keyword);
     }
 
