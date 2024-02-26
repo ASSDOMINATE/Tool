@@ -4,7 +4,7 @@
 
 >* Redis 封装Jedis，使用需查看JedisConf配置使用，使用连接池，支持哨兵、集群、单点，默认采用GenericFastJsonRedisSerializer存储，可按自行更换
 >* UserHelper 接入Hoxinte研发单点登录，标准Restful
->* OSSHelper 接入阿里OSS
+>* OSSHelper 接入阿里OSS 
 >* AwsS3Helper 接入AWS S3
 >* MailHelper 邮件服务，可使用Redis队列发送
 >* BaseUtil Bean基础操作，极大减少重复代码～
